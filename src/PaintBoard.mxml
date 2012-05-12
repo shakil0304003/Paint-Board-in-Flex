@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" creationComplete="Init()" backgroundColor="#FFFFFF">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import mx.messaging.channels.AMFChannel;
+			import mx.controls.Alert;
+			import mx.controls.ColorPicker;
+			import mx.utils.ColorUtil;
+	
+	private var _isDrawing:Boolean = false;
+	private var _isPencil:Boolean = false;
+	private var _x:Number = 0;
+	private var _y:Number = 0;
+	private var _thick:Number = 0;
+	private var fileRef:FileReference;
+	private var loader:Loader;
+	 
+		public function Init():void
+		{
+		     canvas.addEventListener(MouseEvent.MOUSE_DOWN,DragMap);
+		     canvas.addEventListener(MouseEvent.MOUSE_UP,DropMap);
+			 canvas.addEventListener(MouseEvent.MOUSE_MOVE,MouseMove);       		
+		}
+	
+	private function Clear():void
+	{
+		_isPencil = false;
+	}
+	
+	private function DragMap(event:MouseEvent):void
+ 	{
+ 		_isDrawing = true;
+ 		_x = event.stageX;
+ 		_y = event.stageY;
+ 		_thick = int(sTick.value);
+ 		
+ 		if(_isPencil==true)
+ 		{
+ 		canvas.graphics.lineStyle(_thick,cpColor.selectedColor);
+        canvas.graphics.moveTo(-canvas.x+_x,-canvas.y+_y);
+        canvas.graphics.lineTo(-canvas.x+_x,-canvas.y+_y);
+   		}
+ 	}
+ 	
+ 	private function MouseMove(event:MouseEvent):void
+ 	{
+ 		var currentX:Number = event.stageX;
+ 		var currentY:Number = event.stageY;
+ 		
+ 		if(_isDrawing==true)
+ 		{
+ 			if(_isPencil==true)
+ 			{
+ 				canvas.graphics.lineStyle(_thick,cpColor.selectedColor);
+        		canvas.graphics.moveTo(-canvas.x+_x,-canvas.y+_y);
+        		canvas.graphics.lineTo(-canvas.x+currentX,-canvas.y+currentY);
+        		_x = currentX;
+        		_y = currentY;
+    		}
+    		else
+    		{
+    			var t1:Number = _x - currentX;
+    			var t2:Number = _y - currentY;
+    			
+    			if(canvas.x-t1<=0 && -canvas.x+t1+pCanvas.width<=canvas.width)
+    			canvas.x = canvas.x-t1;
+    			
+    			if(canvas.y-t2<=0 && -canvas.y+t2+pCanvas.height<=canvas.height)
+    			canvas.y = canvas.y-t2;
+    			
+    			_x = currentX;
+        		_y = currentY;
+    		}
+ 		}
+ 	}
+ 	
+ 	private function DropMap(event:MouseEvent):void
+ 	{
+ 		var currentX:Number = event.stageX;
+ 		var currentY:Number = event.stageY;
+ 		
+ 		if(_isDrawing == true)
+ 		{
+ 			if(_isPencil==true)
+ 			{
+ 			canvas.graphics.lineStyle(_thick,cpColor.selectedColor);
+        	canvas.graphics.moveTo(-canvas.x+_x,-canvas.y+ _y);
+        	canvas.graphics.lineTo(-canvas.x+currentX,-canvas.y+currentY);
+        	_x = currentX;
+        	_y = currentY;
+    		}
+ 		}
+ 		_isDrawing = false;	
+ 	}
+ 	
+ 	private function startUpload():void {
+            var imageTypes:FileFilter = new FileFilter("Images (*.jpg, *.jpeg, *.gif, *.png)", "*.jpg; *.jpeg; *.gif; *.png");
+            var allTypes:Array = new Array(imageTypes);
+            fileRef = new FileReference();
+            fileRef.browse(allTypes);
+            fileRef.addEventListener(Event.SELECT, selectHandler);
+        }
+
+        private function selectHandler(event:Event):void {
+        	fileRef.load();
+            //bitmapImage.source = fileRef.data;
+            fileRef.addEventListener( Event.COMPLETE, onLoaded );
+        }
+        
+        private function LoadComplete(event:Event):void
+        {
+        	canvas.graphics.clear();
+        	var bt:BitmapData = Bitmap(bitmapImage.content).bitmapData;
+        	canvas.graphics.beginBitmapFill(bt);
+			canvas.graphics.drawRect(0, 0, bt.width, bt.height);
+			canvas.graphics.endFill();
+			
+			if(bt.width>pCanvas.width)
+			canvas.width = bt.width;
+			else
+			canvas.width = pCanvas.width;
+			
+			if(bt.height>pCanvas.height)
+			canvas.height = bt.height;
+			else
+			canvas.height = pCanvas.height;
+			
+			canvas.x = 0;
+			canvas.y = 0;
+        }
+        
+        private function onLoaded( event : Event ) : void
+            {
+            	bitmapImage.source = fileRef.data;
+            	bitmapImage.addEventListener(FlexEvent.UPDATE_COMPLETE,LoadComplete);
+            }
+		
+		private function Pencil():void
+		{
+			var temp:Boolean = _isPencil;
+			
+			Clear();
+			if(temp == true)
+			{
+			_isPencil = false;
+			btnPencil.label = "Pencil Off";
+			}
+			else
+			{
+			_isPencil = true;
+			btnPencil.label = "Pencil On";
+			}
+		}
+		
+		]]>
+	</mx:Script>
+	
+    <mx:Canvas id="pCanvas" width="300" height="300" horizontalScrollPolicy="off" verticalScrollPolicy="off" borderThickness="1" borderColor="#000000" borderStyle="solid">
+	<mx:Canvas id="canvas" width="300" height="300" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	</mx:Canvas>
+	</mx:Canvas>
+
+	<mx:ColorPicker id="cpColor" x="10" y="308"/>
+	<mx:HSlider id="sTick" x="51" y="308" tickInterval="1" tickLength="10"/>
+	
+	 <mx:Button id="btn" label="Browse..."
+               click="startUpload();"  x="220" y="308"/>
+	 <mx:Image id="bitmapImage" x="332" y="48" width="100" height="100"/>
+      <mx:Button id="btnPencil" label="Pencil Off"
+               click="Pencil();"  x="332" y="156"/>
+               <mx:Label id="lblPoint" x="332" y="186">
+               </mx:Label>
+</mx:Application>
